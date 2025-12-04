@@ -1,0 +1,162 @@
+.flip-card {
+  width: 220px;
+  height: 300px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.flip-card-front {
+  transform: rotateY(0deg);
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Overlay para texto sobre la imagen */
+.card-overlay {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 21px;
+  font-weight: bold;
+}
+
+/* Fondo general */
+.app-container {
+  font-family: Arial, sans-serif;
+  min-height: 375%;
+  min-width: 450px;
+  background: linear-gradient(135deg, #74b9ff, #a29bfe);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  margin-top: 10%;
+  margin-bottom: 10%;
+
+
+}
+
+/* Formulario */
+.formulario {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  max-width: 900px;
+  min-width: 400px;
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10%;
+  margin-bottom: 10%;
+}
+
+.formulario h2, .formulario h3 {
+  margin: 5px 0;
+  color: #2d3436;
+}
+
+.formulario label {
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.formulario input {
+  padding: 8px;
+  border: 1px solid #dfe6e9;
+  border-radius: 8px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.formulario input:focus {
+  border-color: #6c5ce7;
+}
+
+/* Botón del formulario */
+.btn-generar {
+  background: #6c5ce7;
+  color: white;
+  padding: 10px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-generar:hover {
+  background: #4834d4;
+}
+
+/* Contenedor de cartas */
+.cartas-container {
+  text-align: center;
+  color: white;
+}
+
+.cartas {
+  display: flex;
+  flex-direction: horizontal; /* 👈 apila los elementos verticalmente */
+  justify-content: center;
+  align-items: center; /* 👈 centra horizontalmente */
+  gap: 20px; /* 👈 espacio entre carta y botón */
+  margin-top: 25px;
+}
+
+
+/* Botón volver */
+.btn-volver {
+  background: #d63031;
+  color: white;
+  padding: 10px 15px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-volver:hover {
+  background: #b71540;
+}
+
+

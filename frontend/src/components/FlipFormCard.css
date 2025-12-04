@@ -1,0 +1,193 @@
+/* ---------- CONTENEDOR GENERAL CENTRADO ---------- */
+.flip-form-wrapper {
+  width: 100%;
+  min-height: calc(100vh - 120px); /* deja espacio para navbar + footer */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+  position: relative;
+  z-index: 1;
+}
+
+
+/* ---------- TARJETA ---------- */
+.flip-form-card {
+  width: 650px;
+  min-height: 680px;          /* para que no se corte */
+  perspective: 1000px;
+}
+
+/* interior */
+.flip-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s ease;
+}
+
+.flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+/* ---------- CARAS ---------- */
+.flip-front,
+.flip-back {
+  width: 100%;
+  min-height: 680px;         /* ambas caras igual para que no se muevan */
+  position: absolute;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* ---------- FRONT ---------- */
+.flip-front {
+  cursor: pointer;
+  position: relative;
+}
+
+.flip-image {
+  position: absolute;
+  width: 100%;
+  height: 450px;
+  object-fit: cover;           /* mantiene estilo profesional */
+  object-position: top center; /* evita que se recorte la parte importante */
+  
+}
+
+/* Overlay */
+.flip-front-overlay {
+  position: absolute;
+  bottom: 0;                  /* se queda en la parte inferior */
+  width: 100%;
+  height: 21%;              /* altura de la franja del overlay */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;    /* centra verticalmente dentro del overlay */
+  align-items: center;        /* centra horizontalmente */
+  background: linear-gradient(150deg, #679baa, rgba(84, 13, 99, 0.65));
+  color: whitesmoke;
+  text-align: center;
+  padding: 0 20px;
+  font-weight: bold;
+}
+
+
+
+
+.flip-front-overlay h2{
+  font-size: 36px;
+  padding: 17px;
+  margin: 0;
+  
+}
+
+.flip-front-overlay p {
+  font-size: 21px;
+  margin: 0;
+  
+}
+
+/* ---------- BACK (FORM) ---------- */
+.flip-back {
+  transform: rotateY(180deg);
+  background: whitesmoke;
+  padding: 30px 25px;
+  overflow-y: auto;               /* Permite desplazar si hay MUY muchos campos */
+  scrollbar-width: thin;
+}
+
+.flip-form-container {
+  width: 100%;
+}
+
+.flip-form-container h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #2d3436;
+}
+
+.flip-form-container label {
+  font-weight: 600;
+  margin: 8px 0 4px;
+  display: block;
+}
+
+.flip-form-container input,
+.flip-form-container select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #dcdde1;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+/* Botón enviar */
+.flip-form-container button[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0984e3;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 8px;
+}
+
+.flip-form-container button[type="submit"]:hover {
+  background: #0652dd;
+}
+
+/* Botón volver */
+.flip-back-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: #d63031;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.flip-back-btn:hover {
+  background: #b71540;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+  .flip-form-card {
+    width: 90%;
+    min-height: 620px;
+  }
+
+  .flip-front,
+  .flip-back {
+    min-height: 620px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flip-form-card {
+    width: 95%;
+    min-height: 600px;
+  }
+
+  .flip-front,
+  .flip-back {
+    min-height: 600px;
+  }
+
+  .flip-front-overlay h2 {
+    font-size: 20px;
+  }
+}
