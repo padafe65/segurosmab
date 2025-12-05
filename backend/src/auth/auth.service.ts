@@ -104,4 +104,22 @@ export class AuthService {
   private2() {
     return { ok: true };
   }
+
+  async updateUser(userId: number, data: any) {
+    const user = await this.UsersRepository.findOne({ where: { id: userId } });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    Object.assign(user, data); // copiar cambios
+
+    try {
+      await this.UsersRepository.save(user);
+      return {
+        message: 'Usuario actualizado correctamente',
+        user,
+      };
+    } catch (error) {
+      this.handlerErrors(error);
+    }
+  }
 }

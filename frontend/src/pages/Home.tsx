@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "../App.css"; // 👈 IMPORTA TU CSS GLOBAL
 
 export default function Home() {
   const images = [

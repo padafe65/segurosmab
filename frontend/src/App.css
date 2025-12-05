@@ -157,19 +157,17 @@ p{
 /* ---- FOOTER ---- */
 
 footer {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 99999 !important;
+  width: 100%;
   background: linear-gradient(170deg, #1da7ce, #59129b);
   text-align: center;
   padding: 2rem;
   font-weight: bold;
   color: #e1dfe6;
   margin-top: 1rem;
-  
+  position: static;     /*  👈 Eliminar position relative importante */
+  z-index: auto;         /*  👈 Eliminar el super z-index */
 }
+
 
 footer p{
 
@@ -229,6 +227,150 @@ form button:hover {
   margin: 0;
 }
 
+/* ===========================
+   Styles para Dashboard Admin
+   (añadir al final de App.css)
+   =========================== */
+
+/* Contenedor principal del admin (centrado y con padding) */
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+  color: #2d3436;
+}
+
+/* Cabecera del panel */
+.admin-header {
+  margin-bottom: 18px;
+}
+
+.admin-header h2 {
+  font-size: 1.6rem;
+  color: #213547;
+  margin-bottom: 8px;
+}
+
+/* Botonera */
+.admin-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.admin-btn {
+  background: linear-gradient(135deg, #0984e3, #0652dd);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(6,24,71,0.06);
+}
+
+.admin-btn.secondary {
+  background: linear-gradient(135deg,#6c5ce7,#4c32b6);
+}
+
+.admin-btn.danger {
+  background: linear-gradient(135deg,#ff6b6b,#d63031);
+}
+
+/* Secciones */
+.admin-section {
+  margin-bottom: 22px;
+  background: #fff;
+  padding: 14px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(36, 40, 44, 0.04);
+}
+
+/* Titulos de sección */
+.admin-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #2d3436;
+}
+
+/* Controles de filtro */
+.admin-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.admin-input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e6e9ef;
+  min-width: 160px;
+}
+
+/* Tabla base */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.admin-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #f1f5f9;
+  color: #344054;
+  font-weight: 700;
+  border-bottom: 1px solid #e6eef7;
+}
+
+.admin-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #333;
+}
+
+.admin-table tbody tr:hover {
+  background: #fbfdff;
+}
+
+/* Acciones en fila */
+.row-actions button {
+  margin-right: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+}
+
+.row-actions button.view {
+  background: #06b6d4;
+  color: #fff;
+}
+
+.row-actions button.edit {
+  background: #34d399;
+  color: #fff;
+}
+
+.row-actions button.delete {
+  background: #fb7185;
+  color: #fff;
+}
+
+/* Mensajes y estados */
+.admin-empty {
+  padding: 18px;
+  color: #6b7280;
+  text-align: center;
+}
+
 
 /* ---------------- RESPONSIVE ---------------- */
 
@@ -246,6 +388,38 @@ form button:hover {
   .hero-btn {
     padding: 12px 26px;
     font-size: 1.1rem;
+  }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .admin-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-input {
+    min-width: 120px;
+  }
+
+  .admin-table thead {
+    display: none; /* hides header on very small screens (you can implement responsive table later) */
+  }
+
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(2,6,23,0.03);
+  }
+
+  .admin-table td {
+    padding: 10px;
+    border-bottom: none;
   }
 }
 

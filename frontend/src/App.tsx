@@ -28,20 +28,21 @@ export default function App() {
             <Route
               path="/dashboard-admin"
               element={
-                <ProtectedRoute role="admin">
+                <ProtectedRoute allowed={["admin", "super_user"]}>
                   <DashboardAdmin />
                 </ProtectedRoute>
               }
             />
 
-            <Route
-              path="/dashboard-user"
-              element={
-                <ProtectedRoute role="user">
-                  <DashboardUser />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/dashboard-user"
+            element={
+              <ProtectedRoute allowed={["user"]}>
+                <DashboardUser />
+              </ProtectedRoute>
+            }
+          />
+
           </Routes>
         </main>
 

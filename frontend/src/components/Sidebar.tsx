@@ -5,7 +5,7 @@ export default function Sidebar({ rol }: { rol: string }) {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("rol");
+    localStorage.removeItem("roles");
     navigate("/", { replace: true });
   };
 

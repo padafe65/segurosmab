@@ -12,25 +12,34 @@ export default function Login() {
   const [mensaje, setMensaje] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
 
   try {
     const { data } = await API.post("/auth/login", {
       email,
-      user_password: password,  // ✅ CAMBIO CORRECTO
+      user_password: password,
     });
 
-    console.log("✅ Login exitoso:", data);
+    console.log("🔥 DATA LOGIN:", data);
 
     const token = data.token;
     localStorage.setItem("token", token);
 
     // Decodificar JWT
     const payload = JSON.parse(atob(token.split(".")[1]));
+    console.log("🔥 PAYLOAD JWT:", payload);
+
     const rol = Array.isArray(payload.roles) ? payload.roles[0] : payload.roles;
 
-    localStorage.setItem("roles", rol);
+    console.log("🔥 ROL DETECTADO:", rol);
+
+    // GUARDAR ROL CON EL NOMBRE CORRECTO
+    localStorage.setItem("rol", rol);
+    // Guardar ID y Roles correctamente
+localStorage.setItem("id_user", payload.id_user);
+localStorage.setItem("rol", payload.roles[0]);
+
     localStorage.setItem("user_name", data.Details.UserDetails.name);
     localStorage.setItem("email", data.Details.UserDetails.email);
 
