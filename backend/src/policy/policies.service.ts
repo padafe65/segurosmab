@@ -1,3 +1,4 @@
+// src/policy/policies.service.ts
 import {
   BadRequestException,
   Injectable,
@@ -10,7 +11,6 @@ import { Repository } from 'typeorm';
 import { CreatePolicyDto } from './dto/create-policy.dto';
 import { UpdatePolicyDto } from './dto/update-policy.dto';
 import { UsersEntity } from 'src/auth/entities/users.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class PoliciesService {
@@ -30,7 +30,6 @@ export class PoliciesService {
       if (!user)
         throw new NotFoundException(`User with id ${dto.user_id} not found`);
 
-      // remove user_id from the dto copy before create (TS typing)
       const { user_id, ...rest } = dto;
 
       const policy = this.policyRepository.create({
@@ -40,35 +39,59 @@ export class PoliciesService {
 
       const saved = await this.policyRepository.save(policy);
       return {
-        Details: {
-          Message: 'Policy created!',
-          Policy: saved,
-        },
+        message: 'Policy created!',
+        policy: saved,
       };
     } catch (error) {
       this.handlerErrors(error);
     }
   }
 
-  async findAll(pagination: PaginationDto) {
+  async findAllWithFilters(params: {
+    userId?: string;
+    policyNumber?: string;
+    placa?: string;
+    limit?: number;
+    skip?: number;
+  }) {
     try {
-      const { limit, skip } = pagination;
-      return await this.policyRepository.find({
-        skip,
-        take: limit,
-        relations: ['user'],
-      });
+      const { userId, policyNumber, placa, limit, skip } = params;
+
+      const query = this.policyRepository
+        .createQueryBuilder('policy')
+        .leftJoinAndSelect('policy.user', 'user')
+        .skip(skip || 0)
+        .take(limit || 100);
+
+      if (userId) {
+        query.andWhere('user.id = :uid', { uid: Number(userId) });
+      }
+
+      if (policyNumber) {
+        query.andWhere('policy.policy_number ILIKE :pn', {
+          pn: `%${policyNumber}%`,
+        });
+      }
+
+      if (placa) {
+        query.andWhere('policy.placa ILIKE :pl', { pl: `%${placa}%` });
+      }
+
+      return await query.getMany();
     } catch (error) {
       this.handlerErrors(error);
     }
   }
 
-  async findOne(id: number) {
+  async findOne(id_policy: number) {
     const policy = await this.policyRepository.findOne({
-      where: { id_policy: id },
+      where: { id_policy },
       relations: ['user'],
     });
-    if (!policy) throw new NotFoundException(`Policy with id ${id} not found`);
+
+    if (!policy)
+      throw new NotFoundException(`Policy with id ${id_policy} not found`);
+
     return policy;
   }
 
@@ -79,16 +102,18 @@ export class PoliciesService {
     });
   }
 
-  async update(id: number, dto: UpdatePolicyDto) {
+  async update(id_policy: number, dto: UpdatePolicyDto) {
     try {
-      // preload expects the partial entity with typed fields
       const { user_id, ...rest } = dto as any;
 
-      const policyToPreload: any = { id_policy: id, ...rest };
-      const policy = await this.policyRepository.preload(policyToPreload);
+      // 🔥 preload usando id_policy
+      const policy = await this.policyRepository.preload({
+        id_policy,
+        ...rest,
+      });
 
       if (!policy)
-        throw new NotFoundException(`Policy with id ${id} not found`);
+        throw new NotFoundException(`Policy with id ${id_policy} not found`);
 
       if (user_id) {
         const user = await this.userRepository.findOneBy({ id: +user_id });
@@ -97,27 +122,24 @@ export class PoliciesService {
         policy.user = user;
       }
 
-      await this.policyRepository.save(policy);
-      return { Message: 'Policy updated!' };
+      const saved = await this.policyRepository.save(policy);
+      return { message: 'Policy updated!', policy: saved };
     } catch (error) {
       this.handlerErrors(error);
     }
   }
 
-  async remove(id: number) {
+  async remove(id_policy: number) {
     try {
-      const policy = await this.findOne(id);
-      await this.policyRepository.delete(id);
-      return `Policy with id ${id} was deleted`;
+      const policy = await this.findOne(id_policy);
+      await this.policyRepository.delete({ id_policy });
+      return `Policy with id ${id_policy} was deleted`;
     } catch (error) {
       this.handlerErrors(error);
     }
   }
 
   private handlerErrors(error: any) {
-    if (error && error.code === '23505') {
-      throw new BadRequestException(error.detail);
-    }
     this.logger.error(error);
     throw new BadRequestException(error?.message || 'Unexpected error');
   }

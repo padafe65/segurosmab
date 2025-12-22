@@ -1,10 +1,22 @@
 // src/pages/CreatePolicy.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/axiosConfig";
 
-export default function CreatePolicy(): JSX.Element {
+interface CreatePolicyProps {
+  mode?: "view" | "edit" | "create";
+}
+
+export default function CreatePolicy(props: CreatePolicyProps): JSX.Element {
   const navigate = useNavigate();
+  const { id_policy } = useParams();
+
+  const { mode = "create" } = props;
+  const isView = mode === "view";
+  const isEdit = mode === "edit";
+
+  const [loading, setLoading] = useState(true);
+
   const [form, setForm] = useState<any>({
     policy_number: "",
     tipo_poliza: "",
@@ -15,7 +27,7 @@ export default function CreatePolicy(): JSX.Element {
     telefono_asistencia: "",
     valor_asegurado: "",
     user_id: "",
-    // vehicle fields
+
     cod_fasecolda: "",
     placa: "",
     tonelaje_cilindraje_pasajeros: "",
@@ -31,121 +43,314 @@ export default function CreatePolicy(): JSX.Element {
     beneficiario: "",
   });
 
-  // productType decides which extra fields show: "productos" or "autos"
-  const [productType, setProductType] = useState<"productos" | "autos">("productos");
+  const [productType, setProductType] =
+    useState<"productos" | "autos">("productos");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // -------------------------------------------------------
+  // CARGAR PÓLIZA
+  // -------------------------------------------------------
+  useEffect(() => {
+    if (mode === "create") {
+      setLoading(false);
+      return;
+    }
+
+    const fetchPolicy = async () => {
+      try {
+        const res = await API.get(`/policies/${id_policy}`);
+        const data = res.data;
+
+        const isAuto = !!data.placa || !!data.cod_fasecolda;
+        setProductType(isAuto ? "autos" : "productos");
+
+        setForm({
+          ...data,
+
+          // ⚠ Tomador asegurado
+          user_id: data.user_id ?? data.user?.id ?? "",
+
+          inicio_vigencia: data.inicio_vigencia?.substring(0, 10),
+          fin_vigencia: data.fin_vigencia?.substring(0, 10),
+        });
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cargar la póliza.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPolicy();
+  }, [id_policy, mode]);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setForm((s: any) => ({ ...s, [name]: value }));
   };
 
+  // -------------------------------------------------------
+  // SUBMIT
+  // -------------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const payload: any = {
+      ...form,
+      user_id: Number(form.user_id),
+
+      valor_asegurado: form.valor_asegurado ? Number(form.valor_asegurado) : null,
+      valor_comercial: form.valor_comercial ? Number(form.valor_comercial) : null,
+      valor_accesorios: form.valor_accesorios ? Number(form.valor_accesorios) : null,
+      valor_total_comercial: form.valor_total_comercial
+        ? Number(form.valor_total_comercial)
+        : null,
+    };
+
+    // ❗ remover campos innecesarios enviados al backend
+    delete payload.user; // relación
+    delete payload.id_policy; // ⚠ causa el error "should not exist"
+
+    if (productType === "productos") {
+      delete payload.cod_fasecolda;
+      delete payload.placa;
+      delete payload.tonelaje_cilindraje_pasajeros;
+      delete payload.departamento_municipio;
+      delete payload.valor_comercial;
+      delete payload.valor_accesorios;
+      delete payload.valor_total_comercial;
+      delete payload.modelo;
+      delete payload.servicio;
+      delete payload.tipo_vehiculo;
+      delete payload.numero_motor;
+      delete payload.numero_chasis;
+      delete payload.beneficiario;
+    }
+
     try {
-      // Convert numeric fields
-      const payload = {
-        ...form,
-        valor_asegurado: form.valor_asegurado ? Number(form.valor_asegurado) : undefined,
-        valor_comercial: form.valor_comercial ? Number(form.valor_comercial) : undefined,
-        valor_accesorios: form.valor_accesorios ? Number(form.valor_accesorios) : undefined,
-        valor_total_comercial: form.valor_total_comercial ? Number(form.valor_total_comercial) : undefined,
-        inicio_vigencia: form.inicio_vigencia,
-        fin_vigencia: form.fin_vigencia,
-      };
-      await API.post("/policies/create", payload);
-      alert("Póliza creada");
+      if (isEdit) {
+        await API.patch(`/policies/${id_policy}`, payload);
+        alert("Póliza actualizada!");
+      } else {
+        await API.post("/policies/create", payload);
+        alert("Póliza creada!");
+      }
+
       navigate("/dashboard-admin");
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || "Error al crear póliza");
+      alert(err?.response?.data?.message || "Error al guardar la póliza");
     }
   };
 
+  if (loading) return <p>Cargando...</p>;
+
   return (
     <div style={{ padding: 20 }}>
-      <h2>Crear Póliza</h2>
+      <h2>{isEdit ? "Editar Póliza" : isView ? "Ver Póliza" : "Crear Póliza"}</h2>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 8, maxWidth: 800 }}>
+
         <label>Tomador (user_id)</label>
-        <input name="user_id" value={form.user_id} onChange={handleChange} required />
+        <input
+          name="user_id"
+          disabled={isView}
+          value={form.user_id}
+          onChange={handleChange}
+        />
 
         <label>No. Póliza</label>
-        <input name="policy_number" value={form.policy_number} onChange={handleChange} required />
+        <input
+          name="policy_number"
+          disabled={isView}
+          value={form.policy_number}
+          onChange={handleChange}
+        />
 
         <label>Tipo de póliza</label>
-        <input name="tipo_poliza" value={form.tipo_poliza} onChange={handleChange} required />
+        <input
+          name="tipo_poliza"
+          disabled={isView}
+          value={form.tipo_poliza}
+          onChange={handleChange}
+        />
 
         <label>Inicio vigencia</label>
-        <input name="inicio_vigencia" type="date" value={form.inicio_vigencia} onChange={handleChange} required />
+        <input
+          type="date"
+          name="inicio_vigencia"
+          disabled={isView}
+          value={form.inicio_vigencia}
+          onChange={handleChange}
+        />
 
         <label>Fin vigencia</label>
-        <input name="fin_vigencia" type="date" value={form.fin_vigencia} onChange={handleChange} required />
+        <input
+          type="date"
+          name="fin_vigencia"
+          disabled={isView}
+          value={form.fin_vigencia}
+          onChange={handleChange}
+        />
 
         <label>Tipo de cliente</label>
-        <select value={productType} onChange={(e) => setProductType(e.target.value as any)}>
+        <select
+          disabled={isView}
+          value={productType}
+          onChange={(e) => setProductType(e.target.value as any)}
+        >
           <option value="productos">CLIENTE PRODUCTOS</option>
           <option value="autos">CLIENTE AUTOS</option>
         </select>
 
-        {/* campos comunes opcionales */}
         <label>Tipo riesgo</label>
-        <input name="tipo_riesgo" value={form.tipo_riesgo} onChange={handleChange} />
+        <input
+          name="tipo_riesgo"
+          disabled={isView}
+          value={form.tipo_riesgo}
+          onChange={handleChange}
+        />
 
         <label>Compañía seguros</label>
-        <input name="compania_seguros" value={form.compania_seguros} onChange={handleChange} />
+        <input
+          name="compania_seguros"
+          disabled={isView}
+          value={form.compania_seguros}
+          onChange={handleChange}
+        />
 
         <label>Teléfono asistencia</label>
-        <input name="telefono_asistencia" value={form.telefono_asistencia} onChange={handleChange} />
+        <input
+          name="telefono_asistencia"
+          disabled={isView}
+          value={form.telefono_asistencia}
+          onChange={handleChange}
+        />
 
         <label>Valor asegurado</label>
-        <input name="valor_asegurado" type="number" value={form.valor_asegurado} onChange={handleChange} />
+        <input
+          type="number"
+          name="valor_asegurado"
+          disabled={isView}
+          value={form.valor_asegurado}
+          onChange={handleChange}
+        />
 
-        {/* Si autos -> mostrar campos vehiculares */}
         {productType === "autos" && (
           <>
             <h4>Campos Vehículos</h4>
+
             <label>Cod Fasecolda</label>
-            <input name="cod_fasecolda" value={form.cod_fasecolda} onChange={handleChange} />
+            <input
+              name="cod_fasecolda"
+              disabled={isView}
+              value={form.cod_fasecolda}
+              onChange={handleChange}
+            />
 
             <label>Placa</label>
-            <input name="placa" value={form.placa} onChange={handleChange} />
+            <input
+              name="placa"
+              disabled={isView}
+              value={form.placa}
+              onChange={handleChange}
+            />
 
             <label>Tonelaje/Cilindraje/Pasajeros</label>
-            <input name="tonelaje_cilindraje_pasajeros" value={form.tonelaje_cilindraje_pasajeros} onChange={handleChange} />
+            <input
+              name="tonelaje_cilindraje_pasajeros"
+              disabled={isView}
+              value={form.tonelaje_cilindraje_pasajeros}
+              onChange={handleChange}
+            />
 
             <label>Departamento/Municipio</label>
-            <input name="departamento_municipio" value={form.departamento_municipio} onChange={handleChange} />
+            <input
+              name="departamento_municipio"
+              disabled={isView}
+              value={form.departamento_municipio}
+              onChange={handleChange}
+            />
 
             <label>Valor comercial</label>
-            <input name="valor_comercial" type="number" value={form.valor_comercial} onChange={handleChange} />
+            <input
+              type="number"
+              name="valor_comercial"
+              disabled={isView}
+              value={form.valor_comercial}
+              onChange={handleChange}
+            />
 
             <label>Valor accesorios</label>
-            <input name="valor_accesorios" type="number" value={form.valor_accesorios} onChange={handleChange} />
+            <input
+              type="number"
+              name="valor_accesorios"
+              disabled={isView}
+              value={form.valor_accesorios}
+              onChange={handleChange}
+            />
 
             <label>Valor total comercial</label>
-            <input name="valor_total_comercial" type="number" value={form.valor_total_comercial} onChange={handleChange} />
+            <input
+              type="number"
+              name="valor_total_comercial"
+              disabled={isView}
+              value={form.valor_total_comercial}
+              onChange={handleChange}
+            />
 
             <label>Modelo</label>
-            <input name="modelo" value={form.modelo} onChange={handleChange} />
+            <input
+              name="modelo"
+              disabled={isView}
+              value={form.modelo}
+              onChange={handleChange}
+            />
 
             <label>Servicio</label>
-            <input name="servicio" value={form.servicio} onChange={handleChange} />
+            <input
+              name="servicio"
+              disabled={isView}
+              value={form.servicio}
+              onChange={handleChange}
+            />
 
             <label>Tipo vehículo</label>
-            <input name="tipo_vehiculo" value={form.tipo_vehiculo} onChange={handleChange} />
+            <input
+              name="tipo_vehiculo"
+              disabled={isView}
+              value={form.tipo_vehiculo}
+              onChange={handleChange}
+            />
 
             <label>No. Motor</label>
-            <input name="numero_motor" value={form.numero_motor} onChange={handleChange} />
+            <input
+              name="numero_motor"
+              disabled={isView}
+              value={form.numero_motor}
+              onChange={handleChange}
+            />
 
             <label>No. Chasis</label>
-            <input name="numero_chasis" value={form.numero_chasis} onChange={handleChange} />
+            <input
+              name="numero_chasis"
+              disabled={isView}
+              value={form.numero_chasis}
+              onChange={handleChange}
+            />
 
             <label>Beneficiario</label>
-            <input name="beneficiario" value={form.beneficiario} onChange={handleChange} />
+            <input
+              name="beneficiario"
+              disabled={isView}
+              value={form.beneficiario}
+              onChange={handleChange}
+            />
           </>
         )}
 
-        <button type="submit">Crear Póliza</button>
+        {!isView && <button type="submit">{isEdit ? "Actualizar" : "Crear"}</button>}
       </form>
     </div>
   );

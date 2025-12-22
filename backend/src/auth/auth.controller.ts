@@ -1,11 +1,16 @@
+// src/auth/auth.controller.ts
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
+  Query,
   Req,
   SetMetadata,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -15,9 +20,9 @@ import { GetUser } from './decorators/get-user/get-user.decorator';
 import { ValidRoles } from './interfaces/valid-roles';
 import { UserRolesGuard } from './guards/user-roles/user-roles.guard';
 import { RoleProtected } from './decorators/role-protected/role-protected.decorator';
-import { Patch } from '@nestjs/common';
-import { UpdateUserDTO } from './dto/update-user.dto'; // lo crearás abajo
+import { UpdateUserDTO } from './dto/update-user.dto';
 import { Auth } from './decorators/auth.decorator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -39,33 +44,54 @@ export class AuthController {
     return req.user;
   }
 
-  @SetMetadata('ROLES', [
-    ValidRoles.admin,
-    ValidRoles.super_user,
-    ValidRoles.user,
-  ])
-  @Get('getUserWithDecorator')
-  @UseGuards(AuthGuard('jwt'))
-  getUserWithDecorator(@GetUser() user) {
-    return user;
+  @Get('users')
+  getAllUsers(@Query() query: any) {
+    const { user_name, email, documento, limit, skip } = query;
+
+    return this.authService.findAllUsers({
+      user_name,
+      email,
+      documento,
+      limit: limit ? Number(limit) : undefined,
+      skip: skip ? Number(skip) : undefined,
+    });
   }
 
-  @Get('private1')
-  @RoleProtected()
-  @UseGuards(AuthGuard('jwt'), UserRolesGuard)
-  private1() {
-    return 'Acceso permitido';
+  // Nuevo: obtener usuario por id (sin password)
+  @Get('users/:id')
+  getUserById(@Param('id') id: number) {
+    return this.authService.findUserById(+id);
   }
 
-  @Get('private2')
-  @Auth(ValidRoles.user)
-  private2() {
-    return this.private2();
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.authService.searchUsers(q);
   }
 
+  // Admin: actualizar cualquier usuario (NO puede cambiar password)
+  @Patch('update/:id')
+  @Auth(ValidRoles.admin, ValidRoles.super_user)
+  async updateUserAdmin(
+    @Param('id') id: number,
+    @Body() updateUserDto: UpdateUserDTO,
+  ) {
+    // ensure password is not changed by admin (Option A)
+    if ('user_password' in (updateUserDto as any)) {
+      delete (updateUserDto as any).user_password;
+    }
+    return this.authService.updateUser(id, updateUserDto);
+  }
+
+  // Usuario autenticado: actualiza su propio perfil (puede cambiar password)
   @Patch('update')
   @Auth(ValidRoles.user)
   async updateUser(@GetUser() user, @Body() updateUserDto: UpdateUserDTO) {
     return this.authService.updateUser(user.id, updateUserDto);
+  }
+
+  @Delete(':id')
+  @Auth(ValidRoles.admin, ValidRoles.super_user)
+  deleteUser(@Param('id') id: number) {
+    return this.authService.deleteUser(+id);
   }
 }

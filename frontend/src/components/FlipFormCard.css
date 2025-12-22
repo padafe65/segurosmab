@@ -1,161 +1,177 @@
-/* === RESET GENERAL === */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Backdrop: ocupa toda la ventana y asegura estar por encima */
+.flip-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10001;
+  padding: 20px;
+  overflow: auto;
 }
 
-body, html {
+/* Wrapper interno centrado */
+.flip-form-wrapper {
   width: 100%;
-  height: 100%;
-  background-color: #f4f6f9;
-  font-family: "Inter", sans-serif;
+  max-width: 850px;
+  max-height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin: auto;
+  z-index: 10002;
 }
 
-/* === GRID DEL DASHBOARD === */
-.dashboard-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  padding: 2rem;
-}
-
-@media (min-width: 768px) {
-  .dashboard-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1200px) {
-  .dashboard-container {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* === FLIPCARD === */
-.flip-card {
-  background-color: transparent;
+/* Tarjeta */
+.flip-form-card {
   width: 100%;
   height: auto;
   perspective: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
+/* interior */
 .flip-inner {
-  position: relative;
-  transition: transform 0.6s;
+  width: 100%;
+  min-height: 520px;
+  height: auto;
   transform-style: preserve-3d;
-  min-height: 600px; /* evita que corte el contenido */
+  transition: transform 0.7s ease;
 }
 
-.flip-card:hover .flip-inner {
+.flip-inner.flipped {
   transform: rotateY(180deg);
 }
 
+/* Caras */
 .flip-front,
 .flip-back {
-  position: absolute;
   width: 100%;
-  height: auto;
-  min-height: fit-content;
-  -webkit-backface-visibility: hidden;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-height: 520px;
   backface-visibility: hidden;
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
 }
 
-/* === IMAGEN DE FLIPCARD === */
+/* FRONT */
+.flip-front {
+  cursor: pointer;
+  position: relative;
+  background: #fff;
+}
+
+.flip-back {
+  transform: rotateY(180deg);
+  background: whitesmoke;
+  padding: 18px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
 .flip-image {
   width: 100%;
-  height: 380px; /* evitar recortes */
-  object-fit: cover;
-  object-position: center;
+  height: 70%;     /* antes 300px */
+  object-fit: cover; /* mantiene estética sin deformar */
+  object-position: center; /* centra la imagen */
   display: block;
 }
 
-/* === CONTENIDO FRONT === */
-.flip-front {
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
 
-.flip-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  padding: 1rem;
-  text-align: center;
-  color: #333;
-}
-
-/* === CONTENIDO BACK === */
-.flip-back {
-  background-color: #ffffff;
-  transform: rotateY(180deg);
-  padding: 1.5rem;
+/* Overlay front */
+.flip-front-overlay {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 24%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  text-align: left;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(150deg, rgba(103,155,170,0.9), rgba(84,13,99,0.75));
+  color: whitesmoke;
+  text-align: center;
+  padding: 0 16px;
 }
 
-.flip-description {
-  font-size: 1rem;
-  color: #4a4a4a;
-  line-height: 1.5;
+.flip-front-overlay h2 {
+  font-size: 1.4rem;
+  margin: 8px 0;
 }
 
-.flip-button {
-  margin-top: 1.5rem;
-  padding: 0.75rem;
-  background-color: #2563eb;
-  color: white;
+.flip-front-overlay p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* container form */
+.flip-form-container {
+  width: 100%;
+}
+
+.flip-form-container h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #2d3436;
+}
+
+.flip-form-container label {
   font-weight: 600;
+  margin: 8px 0 4px;
+  display: block;
+}
+
+.flip-form-container input,
+.flip-form-container select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #dcdde1;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+/* submit */
+.flip-form-container button[type="submit"] {
+  width: 100%;
+  padding: 12px;
   border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
-
-.flip-button:hover {
-  background-color: #1e40af;
-}
-
-/* === DASHBOARD ADMIN CABECERA === */
-.dashboard-header {
-  grid-column: span 3;
-  background: #1e3a8a;
+  border: none;
+  background: #0984e3;
   color: white;
-  padding: 2rem;
-  border-radius: 12px;
-  text-align: center;
-  margin-bottom: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
 }
 
-.dashboard-title {
-  font-size: 2rem;
-  font-weight: 700;
+/* volver */
+.flip-back-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: #d63031;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
 }
 
-/* === TARJETAS DEL ADMIN === */
-.card-admin {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transition: 0.3s ease;
+/* responsive */
+@media (max-width: 768px) {
+  .flip-image { height: 220px; }
+  .flip-front-overlay h2 { font-size: 1.1rem; }
 }
 
-.card-admin:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-}
-
-.card-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-}
-
-.card-text {
-  color: #555;
-  line-height: 1.5;
+@media (max-width: 480px) {
+  .flip-image { height: 180px; }
+  .flip-front-overlay { height: 28%; }
 }

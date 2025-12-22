@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import FlipFormCard from "../components/FlipFormCard";
 import API from "../api/axiosConfig";
+import { logout } from "../utils/logout";
 
 type User = {
   id: number;
@@ -181,14 +182,10 @@ export default function DashboardUser(): JSX.Element {
         
         <button onClick={openPolicies}>📑 Mis Pólizas</button>
 
-        <button
-          onClick={() => {
-            localStorage.clear();
-            navigate("/");
-          }}
-        >
-          🚪 Salir
-        </button>
+      <button onClick={() => logout(navigate)}>
+        🚪 Salir definitivamente
+      </button>
+
       </aside>
 
       <main>

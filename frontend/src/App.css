@@ -337,6 +337,23 @@ form button:hover {
   background: #fbfdff;
 }
 
+.admin-table button.edit {
+  background: #34d399;
+  color: #fff;
+}
+
+.admin-table button.view {
+  background: #06b6d4;
+  color: #fff;
+  margin-left: 7px;
+}
+
+.admin-table button.delete {
+  background: #e60d0d;
+  color: #fff;
+  margin-left: 7px;
+}
+
 /* Acciones en fila */
 .row-actions button {
   margin-right: 8px;
@@ -371,6 +388,40 @@ form button:hover {
   text-align: center;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 18px;
+  width: 90%;
+  max-width: 1100px;
+  max-height: 80vh;
+  overflow: auto;
+  border-radius: 8px;
+  position: relative;
+}
+
+.close-modal {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 6px 10px;
+  border: none;
+  background: #c0392b;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
 
 /* ---------------- RESPONSIVE ---------------- */
 
@@ -390,6 +441,77 @@ form button:hover {
     font-size: 1.1rem;
   }
 }
+
+/* =========================
+   DROPDOWN RUTAS EXTERNAS
+========================= */
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón */
+/* Botón dropdown con gradiente */
+.dropdown-btn {
+  background: linear-gradient(135deg, #04381a, #17b917);
+  box-shadow: 0 4px 12px rgba(89, 18, 155, 0.35);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+/* Hover elegante */
+.dropdown-btn:hover {
+  background: linear-gradient(135deg, #5f6cf5, #7b6cf6);
+  transform: translateY(-1px);
+}
+
+/* Al hacer click (active) */
+.dropdown-btn:active {
+  transform: scale(0.97);
+}
+
+
+/* CONTENEDOR DEL MENÚ (ABAJO, VERTICAL) */
+.dropdown-content {
+  position: absolute;
+  top: 110%;              /* 👈 aparece hacia ABAJO */
+  right: 0;
+  background: white;
+  min-width: 220px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 9999;
+
+  /* 👇 ESTO ES LA CLAVE */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Links */
+.dropdown-content a {
+  padding: 12px 16px;
+  text-decoration: none;
+  color: #2d3436;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dropdown-content a:hover {
+  background: #0984e3;
+  color: white;
+}
+
+.nav-btn:hover {
+  background: #0652dd;
+  color: white !important;
+}
+
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -462,4 +584,62 @@ form button:hover {
     padding: 10px 20px;
     font-size: 0.95rem;
   }
+
+/* ---------- DROPDOWN RESPONSIVE ---------- */
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  background: #0984e3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dropdown-btn:hover {
+  background: #0652dd;
+}
+
+.dropdown-content {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: white;
+  min-width: 220px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-content a {
+  padding: 12px 16px;
+  text-decoration: none;
+  color: #2d3436;
+  font-weight: 500;
+}
+
+.dropdown-content a:hover {
+  background: #0984e3;
+  color: white;
+}
+
+/* 📱 Responsive: menú centrado en móvil */
+@media (max-width: 768px) {
+  .dropdown-content {
+    right: auto;
+    left: 0;
+    min-width: 200px;
+  }
+}
+
+
 }

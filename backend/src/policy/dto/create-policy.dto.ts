@@ -45,6 +45,7 @@ export class CreatePolicyDto {
 
   // campo que relaciona la póliza con el usuario (tomador)
   @IsNumber()
+  @Type(() => Number)
   user_id: number;
 
   // ---------- Opcionales para vehículos ----------

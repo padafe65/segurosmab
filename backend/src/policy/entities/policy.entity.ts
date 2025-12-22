@@ -9,7 +9,7 @@ import { UsersEntity } from 'src/auth/entities/users.entity';
 
 @Entity({ name: 'policies' })
 export class PolicyEntity {
-  @PrimaryGeneratedColumn('increment')
+  @PrimaryGeneratedColumn({ name: 'id_policy' })
   id_policy: number;
 
   @Column('text', { nullable: false, unique: true })
