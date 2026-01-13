@@ -49,9 +49,10 @@ export class CompaniesService {
     }
   }
 
-  async findAll() {
+  async findAll(includeInactive: boolean = false) {
+    const whereCondition = includeInactive ? {} : { isactive: true };
     return await this.companyRepository.find({
-      where: { isactive: true },
+      where: whereCondition,
       order: { nombre: 'ASC' },
     });
   }
@@ -92,6 +93,27 @@ export class CompaniesService {
     this.logger.log(`✅ Empresa actualizada: ${updatedCompany.nombre} (ID: ${id})`);
 
     return updatedCompany;
+  }
+
+  async toggleCompanyStatus(id: number) {
+    const company = await this.findOne(id);
+    
+    // Cambiar el estado
+    company.isactive = !company.isactive;
+    await this.companyRepository.save(company);
+
+    this.logger.log(
+      `✅ Empresa ${company.isactive ? 'activada' : 'desactivada'}: ${company.nombre} (ID: ${id})`
+    );
+
+    return {
+      message: `Empresa ${company.isactive ? 'activada' : 'desactivada'} correctamente`,
+      company: {
+        id: company.id,
+        nombre: company.nombre,
+        isactive: company.isactive,
+      },
+    };
   }
 
   async remove(id: number) {

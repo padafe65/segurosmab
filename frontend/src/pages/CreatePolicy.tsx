@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/axiosConfig";
+import { navigateToDashboard } from "../utils/navigateToDashboard";
 
 // Función para generar PDF (sin dependencia externa)
 const generatePDF = (policyData: any, userData: any, companyData: any) => {
@@ -282,7 +283,8 @@ export default function CreatePolicy(props: CreatePolicyProps): JSX.Element {
       try {
         if (!policyId) {
           alert("ID de póliza no válido");
-          navigate(-1);
+          // Volver al dashboard según el rol
+          navigateToDashboard(navigate);
           return;
         }
         
@@ -466,7 +468,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       alert("Póliza creada!");
     }
 
-    navigate("/dashboard-admin");
+    // Navegar al dashboard correspondiente según el rol
+    navigateToDashboard(navigate);
   } catch (err: any) {
     console.error(err);
     alert(err?.response?.data?.message || "Error al guardar la póliza");
@@ -530,7 +533,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             </button>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigateToDashboard(navigate)}
               style={{
                 padding: "10px 20px",
                 background: "#757575",

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import API from "../api/axiosConfig";
 import { useParams, useNavigate } from "react-router-dom";
+import { navigateToDashboard } from "../utils/navigateToDashboard";
 
 export default function Register(): JSX.Element {
   const { id } = useParams();
@@ -10,6 +11,7 @@ export default function Register(): JSX.Element {
   const isEditing = Boolean(id);
   const role = localStorage.getItem("rol") || ""; // "admin" | "user" | "super_user"
   const isAdmin = role === "admin" || role === "super_user";
+  const isSuperUser = role === "super_user"; // Solo super_user puede crear usuarios con roles privilegiados
 
   const [form, setForm] = useState<any>({
     user_name: "",
@@ -69,6 +71,15 @@ const handleSubmit = async (e) => {
   try {
     const dataToSend = { ...form };
 
+    // 🔒 Validación de seguridad en frontend: Si no es super_user, forzar rol "user"
+    if (!isSuperUser && !isEditing) {
+      const privilegedRoles = ['admin', 'super_user'];
+      if (dataToSend.roles && dataToSend.roles.some((r: string) => privilegedRoles.includes(r))) {
+        alert("⚠️ No tienes permisos para crear usuarios con roles privilegiados. Se asignará el rol 'user'.");
+        dataToSend.roles = ['user'];
+      }
+    }
+
     // ❗Evitar enviar contraseña vacía
     if (isEditing && !dataToSend.user_password) {
       delete dataToSend.user_password;
@@ -82,11 +93,13 @@ const handleSubmit = async (e) => {
       alert("Usuario creado correctamente");
     }
 
-    navigate("/dashboard-admin");
+    // Navegar al dashboard correspondiente según el rol
+    navigateToDashboard(navigate);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error guardando", error);
-    alert("Hubo un error al guardar");
+    const errorMessage = error.response?.data?.message || "Hubo un error al guardar";
+    alert(`❌ ${errorMessage}`);
   }
 };
 
@@ -127,11 +140,21 @@ const handleSubmit = async (e) => {
           name="roles"
           value={Array.isArray(form.roles) ? form.roles[0] : form.roles}
           onChange={(e) => setForm((s:any) => ({ ...s, roles: [e.target.value] }))}
+          disabled={!isSuperUser && !isEditing} // Solo super_user puede asignar roles privilegiados al crear
         >
           <option value="user">user</option>
-          <option value="admin">admin</option>
-          <option value="super_user">super_user</option>
+          {isSuperUser && (
+            <>
+              <option value="admin">admin</option>
+              <option value="super_user">super_user</option>
+            </>
+          )}
         </select>
+        {!isSuperUser && !isEditing && (
+          <small style={{ color: "#666", fontSize: "12px" }}>
+            ⚠️ Solo un super_user puede crear usuarios con roles privilegiados. El registro público solo permite crear usuarios con rol "user".
+          </small>
+        )}
 
         {/* Contraseña solo para crear o si el mismo usuario se está editando */}
         {(!isEditing || (!isAdmin && isEditing)) && (
@@ -150,7 +173,7 @@ const handleSubmit = async (e) => {
 
         <div style={{ display: "flex", gap: 8 }}>
           <button type="submit">{isEditing ? "Actualizar Usuario" : "Crear Usuario"}</button>
-          <button type="button" onClick={() => navigate("/dashboard-admin")}>Cancelar</button>
+          <button type="button" onClick={() => navigateToDashboard(navigate)}>Cancelar</button>
         </div>
       </form>
     </div>

@@ -16,6 +16,7 @@ import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { ValidRoles } from 'src/auth/interfaces/valid-roles';
+import { GetUser } from 'src/auth/decorators/get-user/get-user.decorator';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
@@ -55,8 +56,10 @@ export class CompaniesController {
 
   @Get()
   @Auth(ValidRoles.admin, ValidRoles.super_user)
-  findAll() {
-    return this.companiesService.findAll();
+  findAll(@GetUser() user: any) {
+    // Super_user ve todas las empresas (activas e inactivas), admin solo ve activas
+    const includeInactive = user.roles?.includes('super_user') || false;
+    return this.companiesService.findAll(includeInactive);
   }
 
   @Get(':id')
@@ -105,6 +108,13 @@ export class CompaniesController {
       color_secundario: updateDto.color_secundario || undefined,
     };
     return this.companiesService.update(id, parsedDto, logoFile);
+  }
+
+  // Activar/Desactivar empresa
+  @Patch(':id/toggle-status')
+  @Auth(ValidRoles.super_user)
+  toggleCompanyStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.companiesService.toggleCompanyStatus(id);
   }
 
   @Delete(':id')

@@ -41,7 +41,11 @@ export default function DashboardSuperUser(): JSX.Element {
   const [newRoles, setNewRoles] = useState<string[]>([]);
   const [editingCompany, setEditingCompany] = useState<number | null>(null);
   const [newCompanyId, setNewCompanyId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"users" | "policies" | "stats" | "companies">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "policies" | "stats" | "companies" | "messages">("users");
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
+  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
+  const [responseText, setResponseText] = useState<string>("");
+  const [showResponseModal, setShowResponseModal] = useState(false);
   const [companies, setCompanies] = useState<any[]>([]);
   const [filterCompanyId, setFilterCompanyId] = useState<string>("");
   const [editingCompanyData, setEditingCompanyData] = useState<any>(null);
@@ -147,6 +151,25 @@ export default function DashboardSuperUser(): JSX.Element {
     // eslint-disable-next-line
   }, []);
 
+  const handleToggleUserStatus = async (user: User) => {
+    const action = user.isactive ? "desactivar" : "activar";
+    const userType = user.roles?.includes("admin") || user.roles?.includes("super_user") 
+      ? "usuario privilegiado" 
+      : "usuario";
+    
+    if (!confirm(`¿Estás seguro de ${action} este ${userType}?`)) return;
+    
+    try {
+      await API.patch(`/auth/users/${user.id}/toggle-status`);
+      alert(`Usuario ${action === "activar" ? "activado" : "desactivado"} correctamente`);
+      loadUsers();
+    } catch (err: any) {
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "Error al cambiar el estado del usuario";
+      alert(`❌ ${errorMessage}`);
+    }
+  };
+
   const handleDeleteUser = async (id: number) => {
     if (!confirm("¿Eliminar usuario?")) return;
     try {
@@ -203,6 +226,51 @@ export default function DashboardSuperUser(): JSX.Element {
     } catch (err) {
       console.error(err);
       alert("Error al eliminar póliza");
+    }
+  };
+
+  const loadContactMessages = async () => {
+    try {
+      setLoading(true);
+      const res = await API.get("/contact/messages");
+      setContactMessages(res.data || []);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudieron cargar mensajes de contacto");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsRead = async (messageId: number) => {
+    try {
+      await API.patch(`/contact/messages/${messageId}/read`);
+      alert("✅ Mensaje marcado como leído");
+      loadContactMessages();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error al marcar como leído");
+    }
+  };
+
+  const handleRespond = async () => {
+    if (!selectedMessage || !responseText.trim()) {
+      alert("❌ Por favor escribe una respuesta");
+      return;
+    }
+
+    try {
+      await API.patch(`/contact/messages/${selectedMessage.id}/respond`, {
+        respuesta: responseText,
+      });
+      alert("✅ Respuesta enviada correctamente");
+      setShowResponseModal(false);
+      setResponseText("");
+      setSelectedMessage(null);
+      loadContactMessages();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error al enviar respuesta");
     }
   };
 
@@ -344,6 +412,21 @@ export default function DashboardSuperUser(): JSX.Element {
     }
   };
 
+  const handleToggleCompanyStatus = async (company: any) => {
+    const action = company.isactive ? "desactivar" : "activar";
+    if (!confirm(`¿Estás seguro de ${action} esta empresa?`)) return;
+    
+    try {
+      await API.patch(`/companies/${company.id}/toggle-status`);
+      alert(`Empresa ${action === "activar" ? "activada" : "desactivada"} correctamente`);
+      loadCompanies();
+    } catch (err: any) {
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "Error al cambiar el estado de la empresa";
+      alert(`❌ ${errorMessage}`);
+    }
+  };
+
   const handleDeleteCompany = async (id: number) => {
     if (!confirm("¿Eliminar empresa? Los usuarios asociados perderán su asignación.")) return;
     try {
@@ -387,7 +470,19 @@ export default function DashboardSuperUser(): JSX.Element {
         </p>
       </div>
 
-      <div className="admin-actions" style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+      <div className="admin-actions" style={{ 
+        display: "flex", 
+        gap: 12, 
+        marginBottom: 12,
+        position: "sticky",
+        top: 0,
+        background: "#fff",
+        padding: "15px 0",
+        zIndex: 100,
+        borderBottom: "2px solid #ddd",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        flexWrap: "wrap"
+      }}>
         <button className="admin-btn" onClick={() => setActiveTab("users")}>
           👥 Usuarios
         </button>
@@ -400,8 +495,17 @@ export default function DashboardSuperUser(): JSX.Element {
         <button className="admin-btn" onClick={() => setActiveTab("companies")}>
           🏢 Empresas
         </button>
+        <button className="admin-btn" onClick={() => { setActiveTab("messages"); loadContactMessages(); }}>
+          💬 Mensajes
+        </button>
         <button className="admin-btn" onClick={loadUsers}>
           🔄 Refrescar
+        </button>
+        <button 
+          className="admin-btn secondary" 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          ⬆️ Arriba
         </button>
         <button className="admin-btn" onClick={() => navigate("/admin/users/create")}>
           ➕ Crear Usuario
@@ -638,7 +742,19 @@ export default function DashboardSuperUser(): JSX.Element {
                           </div>
                         )}
                       </td>
-                      <td>{u.isactive ? "✅ Activo" : "❌ Inactivo"}</td>
+                      <td>
+                        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={u.isactive || false}
+                            onChange={() => handleToggleUserStatus(u)}
+                            style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                          />
+                          <span style={{ fontSize: "14px", color: u.isactive ? "#28a745" : "#dc3545" }}>
+                            {u.isactive ? "Activo" : "Inactivo"}
+                          </span>
+                        </label>
+                      </td>
                       <td className="row-actions" style={{ display: "flex", gap: 8 }}>
                         <button className="edit" onClick={() => navigate(`/admin/users/edit/${u.id}`)}>
                           Editar
@@ -714,8 +830,8 @@ export default function DashboardSuperUser(): JSX.Element {
           {loading ? (
             <p className="admin-empty">Cargando pólizas...</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table className="admin-table" style={{ width: "100%", marginTop: 12 }}>
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+              <table className="admin-table" style={{ width: "100%", marginTop: 12, minWidth: "1200px" }}>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -989,7 +1105,19 @@ export default function DashboardSuperUser(): JSX.Element {
                           />
                         </div>
                       </td>
-                      <td>{c.isactive ? "✅ Activa" : "❌ Inactiva"}</td>
+                      <td>
+                        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={c.isactive || false}
+                            onChange={() => handleToggleCompanyStatus(c)}
+                            style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                          />
+                          <span style={{ fontSize: "14px", color: c.isactive ? "#28a745" : "#dc3545" }}>
+                            {c.isactive ? "Activa" : "Inactiva"}
+                          </span>
+                        </label>
+                      </td>
                       <td className="row-actions" style={{ display: "flex", gap: 8 }}>
                         <button
                           className="edit"
@@ -1015,6 +1143,165 @@ export default function DashboardSuperUser(): JSX.Element {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "messages" && (
+        <section className="admin-section">
+          <h3>💬 Mensajes de Contacto</h3>
+          <button className="admin-btn" onClick={loadContactMessages} style={{ marginBottom: "10px" }}>
+            🔄 Actualizar Mensajes
+          </button>
+
+          {loading ? (
+            <p className="admin-empty">Cargando mensajes...</p>
+          ) : (
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+              <table className="admin-table" style={{ width: "100%", marginTop: 12, minWidth: "1000px" }}>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>De</th>
+                  <th>Email</th>
+                  <th>Asunto</th>
+                  <th>Mensaje</th>
+                  <th>Usuario</th>
+                  <th>Empresa</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contactMessages.map((msg: any) => (
+                  <tr key={msg.id} style={{ background: msg.leido ? "#f0f0f0" : "#fff3cd" }}>
+                    <td>{msg.id}</td>
+                    <td>{msg.nombre}</td>
+                    <td>{msg.email}</td>
+                    <td>{msg.asunto}</td>
+                    <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {msg.mensaje.substring(0, 50)}...
+                    </td>
+                    <td>{msg.user?.user_name || "Visitante"}</td>
+                    <td>{msg.company?.nombre || "-"}</td>
+                    <td>{new Date(msg.created_at).toLocaleString('es-ES')}</td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {msg.leido ? (
+                          <span style={{ color: "#28a745", fontSize: "12px" }}>✓ Leído</span>
+                        ) : (
+                          <span style={{ color: "#ff9800", fontSize: "12px" }}>⏳ Pendiente</span>
+                        )}
+                        {msg.respondido && (
+                          <span style={{ color: "#2196f3", fontSize: "12px" }}>💬 Respondido</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="row-actions" style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                      <button
+                        className="view"
+                        onClick={() => {
+                          setSelectedMessage(msg);
+                          setShowResponseModal(true);
+                        }}
+                      >
+                        Ver/Responder
+                      </button>
+                      {!msg.leido && (
+                        <button
+                          className="edit"
+                          onClick={() => handleMarkAsRead(msg.id)}
+                        >
+                          Marcar Leído
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {contactMessages.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="admin-empty">
+                      No hay mensajes de contacto
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            </div>
+          )}
+
+          {/* Modal para ver y responder mensaje */}
+          {showResponseModal && selectedMessage && (
+            <div className="modal-overlay">
+              <div className="modal-content" style={{ maxWidth: "600px" }}>
+                <h3>Mensaje de {selectedMessage.nombre}</h3>
+                <button
+                  className="close-modal"
+                  onClick={() => {
+                    setShowResponseModal(false);
+                    setSelectedMessage(null);
+                    setResponseText("");
+                  }}
+                >
+                  Cerrar ✖
+                </button>
+
+                <div style={{ marginTop: "20px" }}>
+                  <p><strong>Email:</strong> {selectedMessage.email}</p>
+                  <p><strong>Asunto:</strong> {selectedMessage.asunto}</p>
+                  <p><strong>Fecha:</strong> {new Date(selectedMessage.created_at).toLocaleString('es-ES')}</p>
+                  <p><strong>Usuario:</strong> {selectedMessage.user?.user_name || "Visitante"}</p>
+                  {selectedMessage.company && (
+                    <p><strong>Empresa:</strong> {selectedMessage.company.nombre}</p>
+                  )}
+                  <div style={{ marginTop: "15px", padding: "15px", background: "#f5f5f5", borderRadius: "4px" }}>
+                    <strong>Mensaje:</strong>
+                    <p style={{ whiteSpace: "pre-wrap", marginTop: "5px" }}>{selectedMessage.mensaje}</p>
+                  </div>
+
+                  {selectedMessage.respondido && selectedMessage.respuesta && (
+                    <div style={{ marginTop: "15px", padding: "15px", background: "#e3f2fd", borderRadius: "4px" }}>
+                      <strong>Respuesta anterior:</strong>
+                      <p style={{ whiteSpace: "pre-wrap", marginTop: "5px" }}>{selectedMessage.respuesta}</p>
+                      <small style={{ color: "#666" }}>
+                        Respondido el: {new Date(selectedMessage.responded_at).toLocaleString('es-ES')}
+                      </small>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: "20px" }}>
+                    <label>
+                      <strong>Tu respuesta:</strong>
+                    </label>
+                    <textarea
+                      value={responseText}
+                      onChange={(e) => setResponseText(e.target.value)}
+                      placeholder="Escribe tu respuesta aquí..."
+                      rows={6}
+                      style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "4px", border: "1px solid #ddd" }}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+                    <button className="admin-btn" onClick={handleRespond}>
+                      {selectedMessage.respondido ? "Actualizar Respuesta" : "Enviar Respuesta"}
+                    </button>
+                    {!selectedMessage.leido && (
+                      <button
+                        className="admin-btn secondary"
+                        onClick={() => {
+                          handleMarkAsRead(selectedMessage.id);
+                          setSelectedMessage({ ...selectedMessage, leido: true });
+                        }}
+                      >
+                        Marcar como Leído
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </section>

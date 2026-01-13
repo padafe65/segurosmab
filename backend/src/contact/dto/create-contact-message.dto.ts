@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateContactMessageDto {
   @IsString()
@@ -21,6 +22,7 @@ export class CreateContactMessageDto {
   mensaje: string;
 
   @IsOptional()
-  @IsString()
+  @Type(() => Number)
+  @IsNumber()
   user_id?: number; // Opcional: si el usuario está logueado
 }

@@ -19,6 +19,7 @@ import { UpdateUserDTO } from './dto/update-user.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { randomBytes } from 'crypto';
+import { ValidRoles } from './interfaces/valid-roles';
 
 @Injectable()
 export class AuthService {
@@ -35,10 +36,33 @@ export class AuthService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createUser(createUserDto: CreateUserDTO, creatorCompanyId?: number) {
+  async createUser(createUserDto: CreateUserDTO, creatorCompanyId?: number, creatorRoles?: string[]) {
     const { user_password, ...userData } = createUserDto;
 
     try {
+      // 🔒 VALIDACIÓN DE SEGURIDAD: Prevenir creación de usuarios con roles privilegiados
+      const requestedRoles = userData.roles || [ValidRoles.user];
+      const privilegedRoles = [ValidRoles.admin, ValidRoles.super_user];
+      const hasPrivilegedRole = requestedRoles.some(role => privilegedRoles.includes(role));
+
+      // Si se intenta crear un usuario con rol privilegiado, verificar que el creador sea super_user
+      if (hasPrivilegedRole) {
+        const isCreatorSuperUser = creatorRoles?.includes(ValidRoles.super_user);
+        if (!isCreatorSuperUser) {
+          this.logger.warn(`⚠️ Intento de crear usuario con rol privilegiado sin autorización: ${requestedRoles.join(', ')}`);
+          throw new BadRequestException(
+            'No tienes permisos para crear usuarios con roles privilegiados (admin o super_user). ' +
+            'Solo un super_user puede crear estos roles.'
+          );
+        }
+      }
+
+      // Si el registro es público (sin creador), forzar rol 'user'
+      if (!creatorRoles && requestedRoles.some(role => privilegedRoles.includes(role))) {
+        this.logger.warn(`⚠️ Intento de registro público con rol privilegiado. Forzando rol 'user'.`);
+        userData.roles = [ValidRoles.user];
+      }
+
       const userDataToCreate: any = {
         ...userData,
         user_password: bcrypt.hashSync(
@@ -55,6 +79,9 @@ export class AuthService {
       const user = this.UsersRepository.create(userDataToCreate);
 
       await this.UsersRepository.save(user);
+      
+      this.logger.log(`✅ Usuario creado: ${userData.user_name} (Email: ${userData.email}, Roles: ${userDataToCreate.roles?.join(', ') || 'user'})`);
+      
       return {
         user: {
           ...userData,
@@ -176,6 +203,46 @@ export class AuthService {
       relations: ['company'],
       order: { id: 'ASC' },
     });
+  }
+
+  async toggleUserStatus(id: number, requesterRoles: string[]) {
+    const user = await this.UsersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // 🔒 VALIDACIÓN DE SEGURIDAD: Admin solo puede activar/desactivar usuarios con rol "user"
+    const isRequesterSuperUser = requesterRoles?.includes(ValidRoles.super_user);
+    const userRoles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    const isUserAdminOrSuper = userRoles.some(role => 
+      role === ValidRoles.admin || role === ValidRoles.super_user
+    );
+
+    if (!isRequesterSuperUser && isUserAdminOrSuper) {
+      this.logger.warn(`⚠️ Intento de ${requesterRoles?.join(', ')} de activar/desactivar usuario privilegiado: ${user.email}`);
+      throw new BadRequestException(
+        'No tienes permisos para activar/desactivar usuarios con roles privilegiados (admin o super_user). ' +
+        'Solo un super_user puede hacerlo.'
+      );
+    }
+
+    // Cambiar el estado
+    user.isactive = !user.isactive;
+    await this.UsersRepository.save(user);
+
+    this.logger.log(
+      `✅ Usuario ${user.isactive ? 'activado' : 'desactivado'}: ${user.user_name} (ID: ${id}, Email: ${user.email})`
+    );
+
+    return {
+      message: `Usuario ${user.isactive ? 'activado' : 'desactivado'} correctamente`,
+      user: {
+        id: user.id,
+        user_name: user.user_name,
+        email: user.email,
+        isactive: user.isactive,
+      },
+    };
   }
 
   async deleteUser(id: number) {

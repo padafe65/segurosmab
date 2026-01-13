@@ -6,6 +6,7 @@ import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { RespondMessageDto } from './dto/respond-message.dto';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NotFoundException } from '@nestjs/common';
+import { UsersEntity } from 'src/auth/entities/users.entity';
 
 @Injectable()
 export class ContactService {
@@ -14,27 +15,42 @@ export class ContactService {
   constructor(
     @InjectRepository(ContactMessageEntity)
     private readonly contactMessageRepository: Repository<ContactMessageEntity>,
+    @InjectRepository(UsersEntity)
+    private readonly usersRepository: Repository<UsersEntity>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createMessage(createDto: CreateContactMessageDto, userCompanyId?: number) {
+  async createMessage(createDto: CreateContactMessageDto, userCompanyId?: number, userId?: number) {
     try {
+      // Determinar el user_id final (del usuario autenticado o del DTO)
+      // Convertir a número si viene como string
+      const finalUserId = userId || (createDto.user_id ? Number(createDto.user_id) : undefined);
+      
+      // Si tenemos un user_id pero no company_id, buscar el usuario para obtener su company_id
+      let finalCompanyId = userCompanyId;
+      if (finalUserId && !finalCompanyId) {
+        const user = await this.usersRepository.findOne({
+          where: { id: finalUserId },
+          relations: ['company'],
+        });
+        if (user?.company?.id) {
+          finalCompanyId = user.company.id;
+        }
+      }
+
       const messageData: any = {
         nombre: createDto.nombre,
         email: createDto.email,
         asunto: createDto.asunto,
         mensaje: createDto.mensaje,
-        user: createDto.user_id ? { id: createDto.user_id } as any : undefined,
+        user: finalUserId ? { id: finalUserId } as any : undefined,
         leido: false,
         respondido: false,
       };
 
-      // Asignar company_id si el usuario está logueado
-      if (userCompanyId) {
-        messageData.company = { id: userCompanyId } as any;
-      } else if (createDto.user_id) {
-        // Si hay user_id, obtener su company_id
-        // Esto se puede hacer mejor con una relación, pero por ahora así
+      // Asignar company_id si lo tenemos
+      if (finalCompanyId) {
+        messageData.company = { id: finalCompanyId } as any;
       }
 
       const message = this.contactMessageRepository.create(messageData);
@@ -43,8 +59,14 @@ export class ContactService {
       // Asegurar que es un objeto único, no un array
       const savedEntity = Array.isArray(savedMessage) ? savedMessage[0] : savedMessage;
 
-      // Enviar email al administrador
-      await this.sendNotificationEmail(savedEntity);
+      // Cargar relaciones necesarias para el email
+      const messageWithRelations = await this.contactMessageRepository.findOne({
+        where: { id: savedEntity.id },
+        relations: ['user', 'company'],
+      });
+
+      // Enviar email al administrador de la misma compañía
+      await this.sendNotificationEmail(messageWithRelations || savedEntity);
 
       this.logger.log(`✅ Mensaje de contacto creado: ${savedEntity.id}`);
 
@@ -60,7 +82,40 @@ export class ContactService {
 
   private async sendNotificationEmail(message: ContactMessageEntity) {
     try {
-      const adminEmail = process.env.EMAIL_USER || 'padafe654@gmail.com';
+      // Buscar el admin de la misma compañía que el usuario
+      let adminEmail = process.env.EMAIL_USER || 'padafe654@gmail.com'; // Fallback
+      
+      // Obtener company_id del mensaje
+      const companyId = message.company?.id;
+      
+      if (companyId) {
+        // Buscar usuarios con rol "admin" de la misma compañía
+        // Los roles están almacenados como array de enum en PostgreSQL
+        const allUsers = await this.usersRepository.find({
+          where: {
+            company: { id: companyId },
+            isactive: true,
+          },
+          relations: ['company'],
+        });
+        
+        // Filtrar usuarios que tengan el rol "admin" en su array de roles
+        const adminUsers = allUsers.filter(user => {
+          const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+          return roles.includes('admin' as any);
+        });
+        
+        // Si hay admins de esa compañía, usar el email del primero
+        if (adminUsers && adminUsers.length > 0) {
+          adminEmail = adminUsers[0].email;
+          const companyName = message.company?.nombre || 'N/A';
+          this.logger.log(`📧 Enviando email al admin de la compañía "${companyName}" (ID: ${companyId}): ${adminEmail}`);
+        } else {
+          this.logger.warn(`⚠️ No se encontró admin activo para la compañía ${companyId}, usando email genérico: ${adminEmail}`);
+        }
+      } else {
+        this.logger.log(`📧 Mensaje sin company_id, usando email genérico: ${adminEmail}`);
+      }
       
       const emailContent = `
         <!DOCTYPE html>
@@ -132,6 +187,14 @@ export class ContactService {
 
     return await this.contactMessageRepository.find({
       where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+      relations: ['user', 'responded_by_user', 'company'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async findByUserId(userId: number) {
+    return await this.contactMessageRepository.find({
+      where: { user: { id: userId } },
       relations: ['user', 'responded_by_user', 'company'],
       order: { created_at: 'DESC' },
     });

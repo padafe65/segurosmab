@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   Req,
@@ -32,7 +33,9 @@ export class AuthController {
   registerUser(@Body() createUserDto: CreateUserDTO, @GetUser() user?: any) {
     // Si el usuario está logueado (admin), asignar su company_id
     const companyId = user?.company?.id || user?.company_id || undefined;
-    return this.authService.createUser(createUserDto, companyId);
+    // Pasar los roles del creador para validación de seguridad
+    const creatorRoles = user?.roles || undefined;
+    return this.authService.createUser(createUserDto, companyId, creatorRoles);
   }
 
   @Post('login')
@@ -100,6 +103,17 @@ export class AuthController {
   @Auth(ValidRoles.user)
   async updateUser(@GetUser() user, @Body() updateUserDto: UpdateUserDTO) {
     return this.authService.updateUser(user.id, updateUserDto);
+  }
+
+  // Activar/Desactivar usuario
+  @Patch('users/:id/toggle-status')
+  @Auth(ValidRoles.admin, ValidRoles.super_user)
+  async toggleUserStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() requester: any,
+  ) {
+    const requesterRoles = requester.roles || [];
+    return this.authService.toggleUserStatus(id, requesterRoles);
   }
 
   @Delete(':id')
