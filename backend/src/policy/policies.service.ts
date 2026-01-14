@@ -108,7 +108,31 @@ Empresa: ${policy.company?.nombre || 'Sin empresa asignada'}
     let adminEmail: string | null = null;
     let adminPhone: string | null = null;
     
+    // 🔍 Buscar creador de la póliza (sub_admin o admin que la vendió)
+    let creatorEmail: string | null = null;
+    let creatorPhone: string | null = null;
+    let creatorId: number | null = null;
+    
     try {
+      // Buscar al creador de la póliza (si existe created_by_id)
+      if (policy.created_by_id) {
+        const creator = await this.userRepository.findOne({
+          where: {
+            id: policy.created_by_id,
+            isactive: true,
+          },
+        });
+        
+        if (creator) {
+          creatorEmail = creator.email || null;
+          creatorPhone = creator.telefono || null;
+          creatorId = creator.id;
+          this.logger.log(`👤 Creador de la póliza encontrado: ${creator.email || 'sin email'} (rol: ${policy.created_by_role || 'desconocido'}, ID: ${creator.id})`);
+        } else {
+          this.logger.log(`⚠️ No se encontró el creador de la póliza (ID: ${policy.created_by_id})`);
+        }
+      }
+      
       // Buscar admin de la empresa asociada a la póliza
       if (policy.company?.id) {
         // Buscar usuario admin de la compañía (roles es un array, usar ArrayContains)
@@ -153,7 +177,7 @@ Empresa: ${policy.company?.nombre || 'Sin empresa asignada'}
         }
       }
     } catch (error) {
-      this.logger.error('❌ Error buscando admin de la empresa', error);
+      this.logger.error('❌ Error buscando admin/creador de la empresa', error);
     }
 
     // 📧 Email admin de la empresa asociada
@@ -169,6 +193,29 @@ Empresa: ${policy.company?.nombre || 'Sin empresa asignada'}
       }
     } catch (error) {
       this.logger.error('❌ Error enviando email al admin', error);
+    }
+
+    // 📧 Email al creador de la póliza (sub_admin o admin que la vendió)
+    // Solo si es diferente del admin de la empresa para evitar duplicados
+    try {
+      if (creatorEmail && creatorId) {
+        // Verificar si el creador es diferente del admin de la empresa
+        const isDifferentFromAdmin = !adminEmail || creatorEmail !== adminEmail;
+        
+        if (isDifferentFromAdmin) {
+          await this.notificationsService.enviarCorreo(
+            creatorEmail,
+            mensajeAdmin,
+          );
+          this.logger.log(`✅ Email enviado al creador de la póliza (${policy.created_by_role || 'desconocido'}): ${creatorEmail}`);
+        } else {
+          this.logger.log(`ℹ️ El creador es el mismo admin de la empresa, no se envía email duplicado`);
+        }
+      } else if (policy.created_by_id) {
+        this.logger.warn(`⚠️ No se encontró email del creador de la póliza (ID: ${policy.created_by_id})`);
+      }
+    } catch (error) {
+      this.logger.error('❌ Error enviando email al creador de la póliza', error);
     }
 
     // 📲 WhatsApp usuario (solo si está desplegado)
@@ -194,6 +241,26 @@ Empresa: ${policy.company?.nombre || 'Sin empresa asignada'}
       }
     } catch (error) {
       this.logger.error('❌ Error WhatsApp admin', error);
+    }
+
+    // 📲 WhatsApp al creador de la póliza (sub_admin o admin que la vendió)
+    // Solo si es diferente del admin de la empresa para evitar duplicados
+    try {
+      if (creatorPhone && creatorId && process.env.WHATSAPP_ENABLED === 'true') {
+        // Verificar si el creador es diferente del admin de la empresa
+        const isDifferentFromAdmin = !adminPhone || creatorPhone !== adminPhone;
+        
+        if (isDifferentFromAdmin) {
+          await this.whatsappService.enviar(creatorPhone, mensajeAdmin);
+          this.logger.log(`✅ WhatsApp enviado al creador de la póliza (${policy.created_by_role || 'desconocido'}): ${creatorPhone}`);
+        } else {
+          this.logger.log(`ℹ️ El creador es el mismo admin de la empresa, no se envía WhatsApp duplicado`);
+        }
+      } else if (policy.created_by_id && !creatorPhone) {
+        this.logger.warn(`⚠️ No se encontró teléfono del creador para WhatsApp (póliza ${policy.policy_number}, creador ID: ${policy.created_by_id})`);
+      }
+    } catch (error) {
+      this.logger.error('❌ Error WhatsApp creador de la póliza', error);
     }
 
     // 🔐 Marcar como notificada SOLO si pasó por aquí
