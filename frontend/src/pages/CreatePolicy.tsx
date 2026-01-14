@@ -14,7 +14,7 @@ const generatePDF = (policyData: any, userData: any, companyData: any) => {
     : false;
 
   // Usar datos de la empresa o valores por defecto
-  const companyName = companyData?.nombre || 'EFMB SEGUROS';
+  const companyName = companyData?.nombre || 'Compañía de Seguros';
   const companyNit = companyData?.nit || '';
   const companyAddress = companyData?.direccion || '';
   const companyPhone = companyData?.telefono || '';
@@ -202,7 +202,7 @@ const generatePDF = (policyData: any, userData: any, companyData: any) => {
       ` : ''}
 
       <div class="footer">
-        <p><strong>EFMB SEGUROS</strong></p>
+        <p><strong>${companyName}</strong></p>
         <p>Este documento es una copia del certificado de póliza de seguro.</p>
         <p>Fecha de emisión: ${new Date().toLocaleDateString('es-ES')}</p>
         <p>Para consultas, contacte a su asesor de seguros.</p>

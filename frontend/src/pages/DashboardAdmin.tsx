@@ -35,6 +35,7 @@
   const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
   const [responseText, setResponseText] = useState<string>("");
   const [showResponseModal, setShowResponseModal] = useState(false);
+  const [currentUserCompany, setCurrentUserCompany] = useState<any>(null);
 
     const navigate = useNavigate();
 
@@ -127,6 +128,23 @@ useEffect(() => {
     return;
   }
 
+  // Cargar datos del usuario actual para obtener su compañía
+  const loadCurrentUser = async () => {
+    try {
+      const res = await API.get("/auth/getUserExpress", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.company_id || res.data?.company?.id) {
+        const companyId = res.data.company_id || res.data.company?.id;
+        const companyRes = await API.get(`/companies/${companyId}`);
+        setCurrentUserCompany(companyRes.data);
+      }
+    } catch (err) {
+      console.error("Error cargando datos de compañía del usuario", err);
+    }
+  };
+
+  loadCurrentUser();
   loadUsers();
   loadPolicies();
   loadContactMessages();
@@ -239,6 +257,11 @@ useEffect(() => {
           <p style={{ color: "#666", marginTop: 8, fontSize: "16px" }}>
             👤 {userName}
           </p>
+          {currentUserCompany?.nombre && (
+            <p style={{ color: "#666", marginTop: 4, fontSize: "14px" }}>
+              🏢 {currentUserCompany.nombre}
+            </p>
+          )}
         </div>
 
         {/* Barra de navegación fija */}

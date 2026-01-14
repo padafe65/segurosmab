@@ -66,6 +66,7 @@ export default function DashboardSuperUser(): JSX.Element {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [useLogoUrl, setUseLogoUrl] = useState<boolean>(true); // true = URL, false = upload
+  const [currentUserCompany, setCurrentUserCompany] = useState<any>(null);
 
   const navigate = useNavigate();
 
@@ -149,6 +150,23 @@ export default function DashboardSuperUser(): JSX.Element {
       return;
     }
 
+    // Cargar datos del usuario actual (aunque super_user no tiene compañía, cargamos por si acaso)
+    const loadCurrentUser = async () => {
+      try {
+        const res = await API.get("/auth/getUserExpress", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.company_id || res.data?.company?.id) {
+          const companyId = res.data.company_id || res.data.company?.id;
+          const companyRes = await API.get(`/companies/${companyId}`);
+          setCurrentUserCompany(companyRes.data);
+        }
+      } catch (err) {
+        console.error("Error cargando datos de compañía del usuario", err);
+      }
+    };
+
+    loadCurrentUser();
     loadCompanies();
     loadUsers();
     loadPolicies();
@@ -482,6 +500,11 @@ export default function DashboardSuperUser(): JSX.Element {
         <p style={{ color: "#666", marginTop: 8, fontSize: "16px" }}>
           👤 {userName}
         </p>
+        {currentUserCompany?.nombre && (
+          <p style={{ color: "#666", marginTop: 4, fontSize: "14px" }}>
+            🏢 {currentUserCompany.nombre}
+          </p>
+        )}
         <p style={{ color: "#666", marginTop: 4, fontSize: "14px" }}>
           Acceso completo al sistema - Gestión de usuarios, pólizas y roles
         </p>

@@ -17,6 +17,8 @@ export class ContactService {
     private readonly contactMessageRepository: Repository<ContactMessageEntity>,
     @InjectRepository(UsersEntity)
     private readonly usersRepository: Repository<UsersEntity>,
+    @InjectRepository(CompanyEntity)
+    private readonly companyRepository: Repository<CompanyEntity>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -257,6 +259,21 @@ export class ContactService {
 
   private async sendResponseEmail(message: ContactMessageEntity) {
     try {
+      // Cargar la relación company si no está cargada
+      let companyName = 'Compañía de Seguros';
+      if (message.company?.nombre) {
+        companyName = message.company.nombre;
+      } else if (message.company) {
+        // Si solo tenemos el ID, cargar la compañía
+        const companyId = (message.company as any).id;
+        if (companyId) {
+          const company = await this.companyRepository.findOne({ where: { id: companyId } });
+          if (company) {
+            companyName = company.nombre || companyName;
+          }
+        }
+      }
+
       const emailContent = `
         <!DOCTYPE html>
         <html>
@@ -290,10 +307,10 @@ export class ContactService {
                 Si tienes más preguntas, no dudes en contactarnos nuevamente.
               </p>
 
-              <p>Atentamente,<br><strong>Equipo de EFMB Seguros</strong></p>
+              <p>Atentamente,<br><strong>Equipo de ${companyName}</strong></p>
             </div>
             <div class="footer">
-              <p>© 2026 EFMB Seguros - Todos los derechos reservados</p>
+              <p>© 2026 ${companyName} - Todos los derechos reservados</p>
             </div>
           </div>
         </body>

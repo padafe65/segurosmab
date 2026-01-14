@@ -398,6 +398,11 @@ export default function DashboardUser(): JSX.Element {
       <p style={{ color: "#666", marginTop: 8, fontSize: "16px" }}>
         👤 {userName}
       </p>
+      {companyData?.nombre && (
+        <p style={{ color: "#666", marginTop: 4, fontSize: "14px" }}>
+          🏢 {companyData.nombre}
+        </p>
+      )}
       
       {/* Alertas */}
       {policiesExpiring.length > 0 && (
